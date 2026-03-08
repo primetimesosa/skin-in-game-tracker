@@ -8,9 +8,4 @@ export default {
     extend: {},
   },
   plugins: [],
-}
-And your `src/index.css` contains the Tailwind directives:
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+};
