@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShieldCheck, Info, TrendingUp, User, FileText, Globe, XCircle, Fingerprint, CheckCircle2, HelpCircle, MessageSquareQuote, Database } from 'lucide-react';
+import { Search, ShieldCheck, Info, TrendingUp, User, FileText, Globe, XCircle, Fingerprint, CheckCircle2, HelpCircle, MessageSquareQuote, Database, Bitcoin, ShoppingBag, Coffee, AlertTriangle } from 'lucide-react';
 
 // Replace this with your secure AWS API Gateway URL
 const AWS_BACKEND_URL = "https://ssmpf1q1y6.execute-api.us-east-1.amazonaws.com/default/SkinInTheGameBackend"; 
@@ -35,6 +35,81 @@ const BracketScorer = ({ range }) => {
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div key={i} className={`flex-1 rounded-full transition-all duration-500 ${level >= i ? (i >= 5 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]' : 'bg-indigo-400') : 'bg-slate-700/50'}`} />
         ))}
+      </div>
+    </div>
+  );
+};
+
+const SupportSection = () => {
+  const [copied, setCopied] = useState(false);
+  const btcAddress = "bc1q22zl7z20xmp5703lkms0r4tf6p06wuq9jlpn5y"; 
+
+  const handleCopy = () => {
+    const textArea = document.createElement("textarea");
+    textArea.value = btcAddress;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+    document.body.removeChild(textArea);
+  };
+
+  return (
+    <div className="mt-20 pt-16 border-t border-slate-800/50">
+      <div className="text-center mb-10">
+        <h2 className="text-2xl font-bold text-white mb-2">Support This Project</h2>
+        <p className="text-slate-400 text-sm">This dashboard is free and open-source.</p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        {/* Bitcoin Card */}
+        <div className="bg-[#1A1F2B] rounded-2xl p-6 border border-slate-700/50 flex flex-col items-center group relative overflow-hidden hover:border-orange-500/30 transition-colors">
+          <div className="flex items-center gap-2 mb-6 text-orange-500 font-bold tracking-wide">
+            <Bitcoin className="w-6 h-6" /> Bitcoin (BTC)
+          </div>
+          
+          <div className="bg-white p-3 rounded-2xl mb-6 shadow-xl group-hover:scale-105 transition-transform">
+            {/* Generate a QR code placeholder - replace data parameter with your actual BTC address if desired */}
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${btcAddress}`} alt="BTC QR" className="w-32 h-32" />
+          </div>
+          
+          <button
+            onClick={handleCopy}
+            className="w-full bg-[#11151E] hover:bg-[#151924] border border-slate-700 text-slate-300 text-xs py-3.5 px-4 rounded-xl flex items-center justify-between transition-colors mb-4 focus:outline-none focus:border-orange-500/50"
+          >
+            <span className="truncate mr-2 opacity-80 font-mono tracking-tight text-left">{btcAddress.substring(0, 12)}...{btcAddress.substring(btcAddress.length - 6)}</span>
+            <span className={`font-bold transition-colors ${copied ? 'text-emerald-400' : 'text-slate-500'}`}>
+              {copied ? 'Copied!' : '(Copy)'}
+            </span>
+          </button>
+          
+          <div className="w-full bg-red-500/10 border border-red-500/20 text-red-400/80 text-[10px] py-2 px-3 rounded-lg flex items-center justify-center gap-2 font-medium tracking-wide">
+            <AlertTriangle className="w-3.5 h-3.5" /> Compare address with QR before sending
+          </div>
+        </div>
+
+        {/* Bmore Wealthy Card */}
+        <a href="https://bmorewealthy.net" target="_blank" rel="noopener noreferrer" className="bg-[#1A1F2B] hover:bg-[#1E2432] transition-colors rounded-2xl p-6 border border-slate-700/50 flex flex-col items-center justify-center text-center group cursor-pointer hover:border-emerald-500/30">
+          <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 border border-emerald-500/20 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_15px_rgba(16,185,129,0.1)] group-hover:shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+            <ShoppingBag className="w-8 h-8 text-emerald-500" />
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">Bmore Wealthy</h3>
+          <p className="text-slate-400 text-sm">Support via Clothing Brand</p>
+        </a>
+
+        {/* Buy Me a Coffee Card */}
+        <a href="https://buymeacoffee.com/bmorewealthy" target="_blank" rel="noopener noreferrer" className="bg-[#1A1F2B] hover:bg-[#1E2432] transition-colors rounded-2xl p-6 border border-slate-700/50 flex flex-col items-center justify-center text-center group cursor-pointer hover:border-yellow-500/30">
+          <div className="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mb-6 border border-yellow-500/20 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_15px_rgba(234,179,8,0.1)] group-hover:shadow-[0_0_20px_rgba(234,179,8,0.2)]">
+            <Coffee className="w-8 h-8 text-yellow-500" />
+          </div>
+          <h3 className="text-xl font-bold text-white mb-2">Buy Me a Coffee</h3>
+          <p className="text-slate-400 text-sm">Support via Fiat</p>
+        </a>
       </div>
     </div>
   );
@@ -132,7 +207,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans p-4 md:p-8">
+    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans p-4 md:p-8 pb-16">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center p-3 bg-indigo-500/10 rounded-2xl mb-4 border border-indigo-500/20">
@@ -285,6 +360,9 @@ export default function App() {
             </div>
           </div>
         )}
+        
+        {/* Support Project Section */}
+        <SupportSection />
       </div>
     </div>
   );
