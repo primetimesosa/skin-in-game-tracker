@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ShieldCheck, Info, TrendingUp, User, FileText, Globe, XCircle, Fingerprint, CheckCircle2, HelpCircle, MessageSquareQuote, Database } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
-
-// --- FIREBASE CONFIGURATION ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // Replace this with your secure AWS API Gateway URL
 const AWS_BACKEND_URL = "https://ssmpf1q1y6.execute-api.us-east-1.amazonaws.com/default/SkinInTheGameBackend"; 
@@ -51,7 +41,6 @@ const BracketScorer = ({ range }) => {
 };
 
 export default function App() {
-  const [user, setUser] = useState(null);
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -60,27 +49,9 @@ export default function App() {
   const [correctionInput, setCorrectionInput] = useState('');
   const [hasConfirmedIdentity, setHasConfirmedIdentity] = useState(false);
 
-  // 1. AUTHENTICATION (Mandatory for Firestore)
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (err) {
-        console.error("Auth init failed:", err);
-      }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-
   const handleSearch = async (e, manualCorrection = null) => {
     if (e) e.preventDefault();
-    const searchTicker = manualCorrection ? result.ticker : query.toUpperCase().trim();
+    const searchTicker = manualCorrection ? result?.ticker || query.toUpperCase().trim() : query.toUpperCase().trim();
     
     if (!searchTicker) return;
 
@@ -93,14 +64,13 @@ export default function App() {
     setShowCorrection(false);
     
     try {
-      // Check if we already have a verified mapping for this ticker in Firestore
+      // Check local cache for previously verified mapping
       let verifiedName = manualCorrection;
-      if (!manualCorrection && user) {
-        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'verified_mappings', searchTicker);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          verifiedName = docSnap.data().fundName;
-          setHasConfirmedIdentity(true); // Auto-hide prompt if already verified in DB
+      if (!manualCorrection) {
+        const cachedName = localStorage.getItem(`verified_ticker_${searchTicker}`);
+        if (cachedName) {
+          verifiedName = cachedName;
+          setHasConfirmedIdentity(true); // Auto-hide prompt if already verified in cache
         }
       }
 
@@ -108,6 +78,7 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
+          action: 'SEARCH',
           ticker: searchTicker,
           userCorrection: verifiedName 
         })
@@ -124,18 +95,23 @@ export default function App() {
   };
 
   const handleConfirmIdentity = async () => {
-    if (!user || !result) return;
+    if (!result) return;
     
     try {
-      // Store the verified mapping in the public data collection
-      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'verified_mappings', result.ticker);
-      await setDoc(docRef, {
-        ticker: result.ticker,
-        fundName: result.name,
-        cik: result.cik || null,
-        timestamp: new Date().toISOString(),
-        verifiedBy: user.uid
-      });
+      // Save locally to bypass future prompts for this user instantly
+      localStorage.setItem(`verified_ticker_${result.ticker}`, result.name);
+      
+      // Optional: Send to AWS Backend to save in DynamoDB (if configured later)
+      fetch(AWS_BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'SAVE_VERIFICATION',
+          ticker: result.ticker,
+          fundName: result.name,
+          cik: result.cik
+        })
+      }).catch(err => console.error("Silent AWS cache push failed:", err));
       
       // UI feedback: hide the window
       setHasConfirmedIdentity(true);
@@ -146,6 +122,12 @@ export default function App() {
 
   const submitCorrection = (e) => {
     e.preventDefault();
+    const tickerToCache = result?.ticker || query.toUpperCase().trim();
+    
+    // Save locally
+    localStorage.setItem(`verified_ticker_${tickerToCache}`, correctionInput);
+    
+    // Run search with the newly corrected name
     handleSearch(null, correctionInput);
   };
 
